@@ -21,12 +21,19 @@ const Board: React.FC<BoardProps> = ({ squares, onClick, winningLine }) => {
         isWinningSquare={isWinningSquare}
       />
     );
-  };
-  return (
+  };  return (
     <div className="w-full max-w-xs mx-auto">
-      <div className="grid grid-cols-3 gap-1">
+      <div 
+        className="grid grid-cols-3 gap-1" 
+        role="grid"
+        aria-label="○×ゲームのボード"
+      >
         {Array(9).fill(null).map((_, i) => (
-          <div key={i} className="aspect-square">
+          <div 
+            key={i} 
+            className="aspect-square"
+            role="gridcell"
+          >
             {renderSquare(i)}
           </div>
         ))}
