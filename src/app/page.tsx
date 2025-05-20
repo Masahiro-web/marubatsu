@@ -1,103 +1,134 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Board from '../components/Board';
+import GameStatus from '../components/GameStatus';
+import GameSettings from '../components/GameSettings';
+import { calculateWinner, isBoardFull } from '../utils/gameLogic';
+import { calculateAIMove } from '../utils/aiPlayer';
+import { type GameState, type Player, type GameMode, type AIDifficulty } from '../types';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [gameState, setGameState] = useState<GameState>({
+    squares: Array(9).fill(null),
+    currentPlayer: '○',
+    winner: null,
+    isGameOver: false,
+    winningLine: null,
+    gameMode: 'pvp',
+    aiDifficulty: 'medium',
+  });
+  
+  // AI対戦モードでAIのターンになった場合、自動的に手を選択
+  useEffect(() => {
+    if (
+      gameState.gameMode === 'ai' && 
+      gameState.currentPlayer === '×' && 
+      !gameState.winner && 
+      !gameState.isGameOver
+    ) {
+      // AIの手を少し遅らせる（より自然な感じにするため）
+      const timer = setTimeout(() => {
+        const aiMove = calculateAIMove(gameState.squares, gameState.aiDifficulty);
+        handleClick(aiMove);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.currentPlayer, gameState.gameMode, gameState.isGameOver, gameState.winner]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+  const handleClick = (i: number) => {
+    // すでに埋まっている場合やゲームが終了している場合は何もしない
+    if (gameState.squares[i] || gameState.winner || gameState.isGameOver) {
+      return;
+    }
+
+    // スクエアの状態を更新
+    const newSquares = [...gameState.squares];
+    newSquares[i] = gameState.currentPlayer;
+    
+    // 勝者判定
+    const { winner, winningLine } = calculateWinner(newSquares);
+    
+    // 引き分け判定
+    const boardFull = isBoardFull(newSquares);
+
+    setGameState({
+      ...gameState,
+      squares: newSquares,
+      currentPlayer: gameState.currentPlayer === '○' ? '×' : '○',
+      winner: winner,
+      isGameOver: winner ? true : boardFull,
+      winningLine: winningLine,
+    });
+  };
+
+  const resetGame = () => {
+    setGameState({
+      ...gameState,
+      squares: Array(9).fill(null),
+      currentPlayer: '○',
+      winner: null,
+      isGameOver: false,
+      winningLine: null,
+    });
+  };
+  
+  const handleGameModeChange = (mode: GameMode) => {
+    setGameState({
+      ...gameState,
+      gameMode: mode,
+      // ゲームモードを変更したときにボードをリセット
+      squares: Array(9).fill(null),
+      currentPlayer: '○',
+      winner: null,
+      isGameOver: false,
+      winningLine: null,
+    });
+  };
+  
+  const handleAIDifficultyChange = (difficulty: AIDifficulty) => {
+    setGameState({
+      ...gameState,
+      aiDifficulty: difficulty,
+      // 難易度を変更したときにボードをリセット
+      squares: Array(9).fill(null),
+      currentPlayer: '○',
+      winner: null,
+      isGameOver: false,
+      winningLine: null,
+    });
+  };
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center p-6">
+      <h1 className="text-3xl font-bold mb-8">○×ゲーム</h1>
+      
+      <GameSettings
+        gameMode={gameState.gameMode}
+        aiDifficulty={gameState.aiDifficulty}
+        onGameModeChange={handleGameModeChange}
+        onAIDifficultyChange={handleAIDifficultyChange}
+      />
+      
+      <Board 
+        squares={gameState.squares} 
+        onClick={handleClick} 
+        winningLine={gameState.winningLine}
+      />
+      
+      <GameStatus 
+        currentPlayer={gameState.currentPlayer} 
+        winner={gameState.winner} 
+        isGameOver={gameState.isGameOver}
+        onReset={resetGame}
+      />
+      
+      <div className="h-6 mt-3">
+        {gameState.gameMode === 'ai' && gameState.currentPlayer === '×' && !gameState.winner && !gameState.isGameOver && (
+          <div className="text-blue-500 animate-pulse">AIが考え中...</div>
+        )}
+      </div>
+    </main>
   );
 }
