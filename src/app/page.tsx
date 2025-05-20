@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Board from '../components/Board';
 import GameStatus from '../components/GameStatus';
 import GameSettings from '../components/GameSettings';
 import { calculateWinner, isBoardFull } from '../utils/gameLogic';
 import { calculateAIMove } from '../utils/aiPlayer';
-import { type GameState, type Player, type GameMode, type AIDifficulty } from '../types';
+import { type GameState, type GameMode, type AIDifficulty } from '../types';
 
 export default function Home() {
   const [gameState, setGameState] = useState<GameState>({
@@ -35,48 +35,58 @@ export default function Home() {
       
       return () => clearTimeout(timer);
     }
-  }, [gameState.currentPlayer, gameState.gameMode, gameState.isGameOver, gameState.winner]);
+  }, [
+    gameState.currentPlayer, 
+    gameState.gameMode, 
+    gameState.isGameOver, 
+    gameState.winner, 
+    gameState.squares, 
+    gameState.aiDifficulty, 
+    handleClick
+  ]);
 
-  const handleClick = (i: number) => {
-    // すでに埋まっている場合やゲームが終了している場合は何もしない
-    if (gameState.squares[i] || gameState.winner || gameState.isGameOver) {
-      return;
-    }
+  const handleClick = useCallback((i: number) => {
+    setGameState(prevState => {
+      // すでに埋まっている場合やゲームが終了している場合は何も変更しない
+      if (prevState.squares[i] || prevState.winner || prevState.isGameOver) {
+        return prevState;
+      }
 
-    // スクエアの状態を更新
-    const newSquares = [...gameState.squares];
-    newSquares[i] = gameState.currentPlayer;
-    
-    // 勝者判定
-    const { winner, winningLine } = calculateWinner(newSquares);
-    
-    // 引き分け判定
-    const boardFull = isBoardFull(newSquares);
+      // スクエアの状態を更新
+      const newSquares = [...prevState.squares];
+      newSquares[i] = prevState.currentPlayer;
+      
+      // 勝者判定
+      const { winner, winningLine } = calculateWinner(newSquares);
+      
+      // 引き分け判定
+      const boardFull = isBoardFull(newSquares);
 
-    setGameState({
-      ...gameState,
-      squares: newSquares,
-      currentPlayer: gameState.currentPlayer === '○' ? '×' : '○',
-      winner: winner,
-      isGameOver: winner ? true : boardFull,
-      winningLine: winningLine,
+      return {
+        ...prevState,
+        squares: newSquares,
+        currentPlayer: prevState.currentPlayer === '○' ? '×' : '○',
+        winner: winner,
+        isGameOver: winner ? true : boardFull,
+        winningLine: winningLine,
+      };
     });
-  };
+  }, []);
 
-  const resetGame = () => {
-    setGameState({
-      ...gameState,
+  const resetGame = useCallback(() => {
+    setGameState(prevState => ({
+      ...prevState,
       squares: Array(9).fill(null),
       currentPlayer: '○',
       winner: null,
       isGameOver: false,
       winningLine: null,
-    });
-  };
+    }));
+  }, []);
   
-  const handleGameModeChange = (mode: GameMode) => {
-    setGameState({
-      ...gameState,
+  const handleGameModeChange = useCallback((mode: GameMode) => {
+    setGameState(prevState => ({
+      ...prevState,
       gameMode: mode,
       // ゲームモードを変更したときにボードをリセット
       squares: Array(9).fill(null),
@@ -84,12 +94,12 @@ export default function Home() {
       winner: null,
       isGameOver: false,
       winningLine: null,
-    });
-  };
+    }));
+  }, []);
   
-  const handleAIDifficultyChange = (difficulty: AIDifficulty) => {
-    setGameState({
-      ...gameState,
+  const handleAIDifficultyChange = useCallback((difficulty: AIDifficulty) => {
+    setGameState(prevState => ({
+      ...prevState,
       aiDifficulty: difficulty,
       // 難易度を変更したときにボードをリセット
       squares: Array(9).fill(null),
@@ -97,8 +107,8 @@ export default function Home() {
       winner: null,
       isGameOver: false,
       winningLine: null,
-    });
-  };
+    }));
+  }, []);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
