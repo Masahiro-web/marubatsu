@@ -19,32 +19,6 @@ export default function Home() {
     aiDifficulty: 'medium',
   });
   
-  // AI対戦モードでAIのターンになった場合、自動的に手を選択
-  useEffect(() => {
-    if (
-      gameState.gameMode === 'ai' && 
-      gameState.currentPlayer === '×' && 
-      !gameState.winner && 
-      !gameState.isGameOver
-    ) {
-      // AIの手を少し遅らせる（より自然な感じにするため）
-      const timer = setTimeout(() => {
-        const aiMove = calculateAIMove(gameState.squares, gameState.aiDifficulty);
-        handleClick(aiMove);
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [
-    gameState.currentPlayer, 
-    gameState.gameMode, 
-    gameState.isGameOver, 
-    gameState.winner, 
-    gameState.squares, 
-    gameState.aiDifficulty, 
-    handleClick
-  ]);
-
   const handleClick = useCallback((i: number) => {
     setGameState(prevState => {
       // すでに埋まっている場合やゲームが終了している場合は何も変更しない
@@ -72,6 +46,32 @@ export default function Home() {
       };
     });
   }, []);
+  
+  // AI対戦モードでAIのターンになった場合、自動的に手を選択
+  useEffect(() => {
+    if (
+      gameState.gameMode === 'ai' && 
+      gameState.currentPlayer === '×' && 
+      !gameState.winner && 
+      !gameState.isGameOver
+    ) {
+      // AIの手を少し遅らせる（より自然な感じにするため）
+      const timer = setTimeout(() => {
+        const aiMove = calculateAIMove(gameState.squares, gameState.aiDifficulty);
+        handleClick(aiMove);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [
+    gameState.currentPlayer, 
+    gameState.gameMode, 
+    gameState.isGameOver, 
+    gameState.winner, 
+    gameState.squares, 
+    gameState.aiDifficulty, 
+    handleClick
+  ]);
 
   const resetGame = useCallback(() => {
     setGameState(prevState => ({
